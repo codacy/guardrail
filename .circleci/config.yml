@@ -1,0 +1,45 @@
+version: 2.1
+
+orbs:
+  codacy: codacy/base@13.3.0
+
+references:
+  cache_prefix: &cache_prefix sbt-cache-2026-10-22
+
+workflows:
+  version: 2
+  compile_deploy:
+    jobs:
+      - codacy/checkout_and_version:
+          write_sbt_version: true
+          context: CodacyAWS
+      - codacy/sbt:
+          name: compile_and_test
+          context: CodacyAWS
+          cache_prefix: *cache_prefix
+          steps:
+            - run:
+                name: Compile and run tests
+                command: sbt +test
+          requires:
+            - codacy/checkout_and_version
+      - codacy/sbt:
+          name: publish
+          aws_profile: maven
+          context: CodacyAWS
+          cache_prefix: *cache_prefix
+          steps:
+            - run:
+                name: Publish to S3
+                no_output_timeout: 30m
+                command: sbt +publish
+          requires:
+            - compile_and_test
+          filters:
+            branches:
+              only:
+                - master
+      - codacy/tag_version:
+          context: CodacyAWS
+          requires:
+            - publish

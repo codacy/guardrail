@@ -1,8 +1,4 @@
 name := "guardrail-root"
-// Project version is determined by sbt-git based on the most recent tag
-
-git.gitUncommittedChanges := git.gitCurrentTags.value.isEmpty
-
 import dev.guardrail.sbt.Build._
 import dev.guardrail.sbt.Dependencies
 import dev.guardrail.sbt.RegressionTests.{ exampleArgs, javaFrameworks, scalaFrameworks }
@@ -78,8 +74,6 @@ addCommandAlias("format", "; scalafmtAll ; " + (scalaFrameworks ++ javaFramework
 addCommandAlias("checkFormatting", "; scalafmtCheckAll ; " + (scalaFrameworks ++ javaFrameworks).map(x => s"sample-${x.projectName}/scalafmtCheckAll").mkString("; "))
 addCommandAlias("testSuite", "; test ; runtimeScalaSuite ; runtimeJavaSuite ; microsite/compile")
 addCommandAlias("compileSamples", (scalaFrameworks ++ javaFrameworks).map(x => s"sample-${x.projectName}/Test/compile").mkString("; "))
-
-publishMavenStyle := true
 
 val javaSampleSettings = Seq(
     Test / testOptions += Tests.Argument(TestFrameworks.JUnit, "-a", "-v"),
