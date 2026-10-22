@@ -81,6 +81,7 @@ object Build {
 
   def baseModule(moduleName: String, moduleSegment: String, path: File): Project =
     Project(id=moduleName, base=path)
+      .disablePlugins(codacy.CodacySbt) // only privateMvnPublish is wanted, not the plugin defaults
       .settings(commonSettings)
       .settings(privateMvnPublish)
       .settings(name := moduleName)
