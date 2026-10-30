@@ -509,7 +509,7 @@ class DropwizardServerGenerator private extends ServerTerms[ScalaLanguage, Targe
              this.handler.$methodNameTerm($responseClsTerm)(..$handlerArgs).onComplete({
                case scala.util.Success(result) =>
                  val responseBuilder = Response.status(result.statusCode)
-                 val response = ${Term.Match(Term.Name("result"), responseCases, Nil)}
+                 val response = ${Term.Match(Term.Name("result"), Term.CasesBlock(responseCases), Nil)}
                  asyncResponse.resume(response)
                case scala.util.Failure(err) =>
                  logger.error("{} threw an exception ({}): {}", ${Lit.String(s"$resourceName.$methodName")}, err.getClass.getName, err.getMessage, err)

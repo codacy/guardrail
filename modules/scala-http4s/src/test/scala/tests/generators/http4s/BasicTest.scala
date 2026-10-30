@@ -75,55 +75,7 @@ class BasicTest extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sc
     |        type: object
     |""".stripMargin
 
-  def testVersion(version: Http4sVersion): Unit = {
-    test(s"$version - Generate JSON alias definitions") {
-      val (
-        ProtocolDefinitions(RandomType(_, tpe) :: _, _, _, _, _),
-        _,
-        _
-      ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, version.value)
-
-      tpe should matchStructure(t"io.circe.Json")
-    }
-
-    test(s"$version - Handle json subvalues") {
-      val (
-        ProtocolDefinitions(_ :: ClassDefinition(_, _, _, cls, staticDefns, _) :: _, _, _, _, _),
-        _,
-        _
-      )       = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, version.value)
-      val cmp = companionForStaticDefns(staticDefns)
-
-      val definition = q"""
-      case class Blix(map: io.circe.Json)
-    """
-
-      val companion = q"""
-      object Blix {
-        implicit val encodeBlix: _root_.io.circe.Encoder.AsObject[Blix] = {
-          _root_.io.circe.Encoder.AsObject.instance[Blix](a => _root_.io.circe.JsonObject.fromIterable(_root_.scala.Vector(("map", a.map.asJson))))
-        }
-        implicit val decodeBlix: _root_.io.circe.Decoder[Blix] = new _root_.io.circe.Decoder[Blix] { final def apply(c: _root_.io.circe.HCursor): _root_.io.circe.Decoder.Result[Blix] = for (v0 <- c.downField("map").as[io.circe.Json]) yield Blix(v0) }
-      }
-    """
-
-      cls should matchStructure(definition)
-      cmp should matchStructure(companion)
-    }
-
-    test(s"$version - Properly handle all methods") {
-      val (
-        _,
-        Clients(Client(tags, className, _, staticDefns, cls, statements) :: _, Nil),
-        _
-      )       = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, version.value)
-      val cmp = companionForStaticDefns(staticDefns)
-
-      val companion = q"""object Client {
-      def apply[F[_]](host: String = "http://localhost:1234")(implicit F: Async[F], httpClient: Http4sClient[F]): Client[F] = new Client[F](host = host)(F = F, httpClient = httpClient)
-      def httpClient[F[_]](httpClient: Http4sClient[F], host: String = "http://localhost:1234")(implicit F: Async[F]): Client[F] = new Client[F](host = host)(F = F, httpClient = httpClient)
-    }"""
-      val client = q"""
+  private def expectedClient = q"""
     class Client[F[_]](host: String = "http://localhost:1234")(implicit F: Async[F], httpClient: Http4sClient[F]) {
       val basePath: String = ""
       private def parseOptionalHeader(response: Response[F], header: String): F[Option[String]] = F.pure(response.headers.get(CIString(header)).map(_.head.value))
@@ -201,7 +153,8 @@ class BasicTest extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sc
       }
     }
     """
-      val expected = List(
+
+  private def expectedStatements = List(
         q"""
         sealed abstract class GetBarResponse {
           def fold[A](handleOk: => A): A = this match {
@@ -261,9 +214,58 @@ class BasicTest extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sc
         q"""object DeleteFooResponse { case object Ok extends DeleteFooResponse }"""
       )
 
-      expected.zip(statements).foreach { case (a, b) => a should matchStructure(b) }
+  def testVersion(version: Http4sVersion): Unit = {
+    test(s"$version - Generate JSON alias definitions") {
+      val (
+        ProtocolDefinitions(RandomType(_, tpe) :: _, _, _, _, _),
+        _,
+        _
+      ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, version.value)
+
+      tpe should matchStructure(t"io.circe.Json")
+    }
+
+    test(s"$version - Handle json subvalues") {
+      val (
+        ProtocolDefinitions(_ :: ClassDefinition(_, _, _, cls, staticDefns, _) :: _, _, _, _, _),
+        _,
+        _
+      )       = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, version.value)
+      val cmp = companionForStaticDefns(staticDefns)
+
+      val definition = q"""
+      case class Blix(map: io.circe.Json)
+    """
+
+      val companion = q"""
+      object Blix {
+        implicit val encodeBlix: _root_.io.circe.Encoder.AsObject[Blix] = {
+          _root_.io.circe.Encoder.AsObject.instance[Blix](a => _root_.io.circe.JsonObject.fromIterable(_root_.scala.Vector(("map", a.map.asJson))))
+        }
+        implicit val decodeBlix: _root_.io.circe.Decoder[Blix] = new _root_.io.circe.Decoder[Blix] { final def apply(c: _root_.io.circe.HCursor): _root_.io.circe.Decoder.Result[Blix] = for (v0 <- c.downField("map").as[io.circe.Json]) yield Blix(v0) }
+      }
+    """
+
+      cls should matchStructure(definition)
       cmp should matchStructure(companion)
-      cls.head.value should matchStructure(client)
+    }
+
+    test(s"$version - Properly handle all methods") {
+      val (
+        _,
+        Clients(Client(tags, className, _, staticDefns, cls, statements) :: _, Nil),
+        _
+      )       = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, version.value)
+      val cmp = companionForStaticDefns(staticDefns)
+
+      val companion = q"""object Client {
+      def apply[F[_]](host: String = "http://localhost:1234")(implicit F: Async[F], httpClient: Http4sClient[F]): Client[F] = new Client[F](host = host)(F = F, httpClient = httpClient)
+      def httpClient[F[_]](httpClient: Http4sClient[F], host: String = "http://localhost:1234")(implicit F: Async[F]): Client[F] = new Client[F](host = host)(F = F, httpClient = httpClient)
+    }"""
+
+      expectedStatements.zip(statements).foreach { case (a, b) => a should matchStructure(b) }
+      cmp should matchStructure(companion)
+      cls.head.value should matchStructure(expectedClient)
     }
   }
 

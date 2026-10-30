@@ -52,7 +52,7 @@ object ResponseADTHelper {
 
     val cls = q"""
         sealed abstract class ${responseSuperType}[..$extraTypeParams] {
-          def fold[A](..${foldParams}): A = ${Term.Match(Term.This(Name("")), foldCases, Nil)}
+          def fold[A](..${foldParams}): A = ${Term.Match(Term.This(Name("")), Term.CasesBlock(foldCases), Nil)}
         }
       """
     List[Defn](cls, companion)

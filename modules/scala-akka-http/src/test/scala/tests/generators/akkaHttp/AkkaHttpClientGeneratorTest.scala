@@ -215,7 +215,7 @@ class AkkaHttpClientGeneratorTest extends AnyFunSuite with Matchers with Swagger
           structuredJsonEntityUnmarshaller.flatMap(_ => _ => json => io.circe.Decoder[Order].decodeJson(json).fold(FastFuture.failed, FastFuture.successful))
         }
         def getOrderById(traceBuilder: TraceBuilder, orderId: Long, headerMeThis: String, methodName: String = "get-order-by-id", headers: List[HttpHeader] = Nil): EitherT[Future, Either[Throwable, HttpResponse], GetOrderByIdResponse] = {
-          val tracingHttpClient = traceBuilder(s"$$clientName:$$methodName")(httpClient)
+          val tracingHttpClient = traceBuilder(s"$${clientName}:$${methodName}")(httpClient)
           val allHeaders = headers ++ scala.collection.immutable.Seq[Option[HttpHeader]](Some(RawHeader("HeaderMeThis", Formatter.show(headerMeThis)))).flatten
           makeRequest(HttpMethods.GET, host + basePath + "/store/order/" + Formatter.addPath(orderId), allHeaders, HttpEntity.Empty, HttpProtocols.`HTTP/1.1`).flatMap(req => EitherT(tracingHttpClient(req).flatMap(resp => resp.status match {
             case StatusCodes.OK =>
@@ -232,7 +232,7 @@ class AkkaHttpClientGeneratorTest extends AnyFunSuite with Matchers with Swagger
           })))
         }
         def deleteOrder(traceBuilder: TraceBuilder, orderId: Long, methodName: String = "delete-order", headers: List[HttpHeader] = Nil): EitherT[Future, Either[Throwable, HttpResponse], DeleteOrderResponse] = {
-          val tracingHttpClient = traceBuilder(s"$$clientName:$$methodName")(httpClient)
+          val tracingHttpClient = traceBuilder(s"$${clientName}:$${methodName}")(httpClient)
           val allHeaders = headers ++ scala.collection.immutable.Seq[Option[HttpHeader]]().flatten
           makeRequest(HttpMethods.DELETE, host + basePath + "/store/order/" + Formatter.addPath(orderId), allHeaders, HttpEntity.Empty, HttpProtocols.`HTTP/1.1`).flatMap(req => EitherT(tracingHttpClient(req).flatMap(resp => resp.status match {
             case StatusCodes.BadRequest =>

@@ -88,10 +88,10 @@ class Issue314 extends AnyFunSpec with Matchers with SwaggerSpecRunner {
          |  private[this] def makeRequest[T: ToEntityMarshaller](method: HttpMethod, uri: Uri, headers: scala.collection.immutable.Seq[HttpHeader], entity: T, protocol: HttpProtocol): EitherT[Future, Either[Throwable, HttpResponse], HttpRequest] = {
          |    EitherT(Marshal(entity).to[RequestEntity].map[Either[Either[Throwable, HttpResponse], HttpRequest]] {
          |      entity => Right(HttpRequest(method = method, uri = uri, headers = headers, entity = entity, protocol = protocol))
-         |    }.recover({
+         |    }.recover {
          |      case t =>
          |        Left(Left(t))
-         |    }))
+         |    })
          |  }
          |  def getUser(id: String, headers: List[HttpHeader] = Nil): EitherT[Future, Either[Throwable, HttpResponse], GetUserResponse] = {
          |    val allHeaders = headers ++ scala.collection.immutable.Seq[Option[HttpHeader]]().flatten
@@ -100,10 +100,10 @@ class Issue314 extends AnyFunSpec with Matchers with SwaggerSpecRunner {
          |        resp.discardEntityBytes().future.map(_ => Right(GetUserResponse.OK))
          |      case _ =>
          |        FastFuture.successful(Left(Right(resp)))
-         |    }).recover({
+         |    }).recover {
          |      case e: Throwable =>
          |        Left(Left(e))
-         |    })))
+         |    }))
          |  }
          |}""".stripMargin
 

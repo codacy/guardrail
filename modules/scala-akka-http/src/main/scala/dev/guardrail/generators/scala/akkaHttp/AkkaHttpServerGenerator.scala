@@ -292,12 +292,11 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
           ${Defn.Def(
           List(mod"implicit"),
           Term.Name(s"${responseClsName.uncapitalized}TRM"),
-          List(
-            Member.ParamClauseGroup(
-              Type.ParamClause(Nil),
-              NonEmptyList.fromList(protocolImplicits).fold(List.empty[Term.ParamClause])(nel => List(Term.ParamClause(nel.toList, Some(Mod.Implicit()))))
-            )
-          ),
+          NonEmptyList
+            .fromList(protocolImplicits)
+            .fold(List.empty[Member.ParamClauseGroup])(nel =>
+              List(Member.ParamClauseGroup(Type.ParamClause(Nil), List(Term.ParamClause(nel.toList, Some(Mod.Implicit())))))
+            ),
           Some(t"ToResponseMarshaller[${responseSuperType}]"),
           q"""Marshaller { implicit ec => resp => ${Term.Name(s"${responseClsName.uncapitalized}TR")}(resp) }"""
         )};
@@ -308,7 +307,7 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
           toResponseImplicits,
           Some(Mod.Implicit())
         )}): scala.concurrent.Future[List[Marshalling[HttpResponse]]] =
-              ${Term.Match(Term.Name("value"), marshallers, Nil)}
+              ${Term.Match(Term.Name("value"), Term.CasesBlock(marshallers), Nil)}
 
             def apply[T](value: T)(implicit ev: T => ${responseSuperType}): ${responseSuperType} = ev(value)
 
@@ -887,7 +886,7 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
                             Nil
                           }
                         }).mapAsync(1)(${Term.Block(
-                      List(Term.Function(Term.ParamClause(List(Term.Param(List.empty, q"part", None, None))), Term.Match(q"part.name", allCases, Nil)))
+                      List(Term.Function(Term.ParamClause(List(Term.Param(List.empty, q"part", None, None))), Term.Match(q"part.name", Term.CasesBlock(allCases), Nil)))
                     )})
                           .toMat(Sink.seq[Either[Throwable, ${Type.Select(partsTerm, Type.Name("Part"))}]])(Keep.right).run()
                       } yield {

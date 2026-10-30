@@ -83,8 +83,8 @@ class ScalaTypesTest extends AnyFunSuite with Matchers with SwaggerSpecRunner wi
        }
      """
 
-      cls.syntax shouldEqual definition.syntax
-      cmp.syntax shouldEqual companion.syntax
+      cls.structure shouldEqual definition.structure
+      cmp.structure shouldEqual companion.structure
     }
   }
 }
