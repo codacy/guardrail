@@ -10,6 +10,7 @@ import dev.guardrail.terms.framework.FrameworkTerms
 import dev.guardrail.terms.protocol.StrictProtocolElems
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.Components
+import io.swagger.v3.oas.models.responses.ApiResponse
 
 class Response[L <: LA](
     val statusCodeName: L#TermName,
@@ -49,8 +50,13 @@ object Responses {
           for {
             httpCode <- lookupStatusCode(Tracker.cloneHistory(resp, key))
             (statusCode, statusCodeName) = httpCode
+            // swagger-parser leaves `$ref: '#/components/responses/...'` unresolved, so follow it to find the content and headers
+            resolvedResp <- resp
+              .downField("$ref", _.get$ref())
+              .indexedDistribute
+              .fold[F[Tracker[ApiResponse]]](resp.pure[F])(ref => Sw.dereferenceResponse(ref, components))
             valueTypes <- (for {
-              (rawContentType, content) <- resp.downField("content", _.getContent()).indexedDistribute.value
+              (rawContentType, content) <- resolvedResp.downField("content", _.getContent()).indexedDistribute.value
               contentType               <- ContentType.unapply(rawContentType).toList
               schema                    <- content.downField("schema", _.getSchema()).indexedDistribute.toList
             } yield (contentType, schema)).traverse { case (contentType, prop) =>
@@ -60,7 +66,7 @@ object Responses {
                 core.Resolved(baseType, _, baseDefaultValue, _) = resolved // TODO: ReifiedRawType is just dropped, should it be considered?
               } yield (contentType, baseType, baseDefaultValue)
             }
-            headers <- resp.downField("headers", _.getHeaders()).indexedDistribute.value.traverse { case (name, header) =>
+            headers <- resolvedResp.downField("headers", _.getHeaders()).indexedDistribute.value.traverse { case (name, header) =>
               for {
                 argName  <- formatMethodArgName(s"${name}Header")
                 termName <- pureTermName(argName)
