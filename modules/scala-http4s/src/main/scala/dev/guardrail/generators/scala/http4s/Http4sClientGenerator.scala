@@ -316,7 +316,7 @@ class Http4sClientGenerator(version: Http4sVersion) extends ClientTerms[ScalaLan
             .filter(_ => formDataNeedsMultipart)
             .map(formDataParams =>
               if (version == Http4sVersion.V0_23) { (inner: List[Stat]) =>
-                q"""Multiparts.forSync[F].flatMap(_.multipart($formDataParams.flatten.toVector).flatMap { _multipart => ..${inner} })"""
+                q"""Multiparts.forSync[F].flatMap(_.multipart($formDataParams.flatten.toVector).flatMap { _multipart => ${Term.Block(inner)} })"""
               } else { (inner: List[Stat]) =>
                 Term.Block(List(q"val _multipart = Multipart($formDataParams.flatten.toVector)") ++ inner)
               }

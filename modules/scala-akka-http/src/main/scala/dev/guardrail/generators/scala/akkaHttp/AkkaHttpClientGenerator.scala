@@ -396,7 +396,7 @@ class AkkaHttpClientGenerator private (modelGeneratorType: ModelGeneratorType) e
             HttpProtocols.`HTTP/1.1`
           ).flatMap(req =>
             EitherT(${httpClientName}(req).flatMap(resp =>
-              ${Term.Match(q"resp.status", cases, Nil)}
+              ${Term.Match(q"resp.status", Term.CasesBlock(cases), Nil)}
             ).recover({
               case e: Throwable =>
                 Left(Left(e))

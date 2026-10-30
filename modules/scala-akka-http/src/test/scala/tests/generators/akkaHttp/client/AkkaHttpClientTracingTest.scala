@@ -49,7 +49,7 @@ class AkkaHttpClientTracingTest extends AnyFunSuite with Matchers with SwaggerSp
           }))
         }
         def getFoo(traceBuilder: TraceBuilder, bleep: String, methodName: String = "get-foo", headers: List[HttpHeader] = Nil): EitherT[Future, Either[Throwable, HttpResponse], GetFooResponse] = {
-          val tracingHttpClient = traceBuilder(s"$$clientName:$$methodName")(httpClient)
+          val tracingHttpClient = traceBuilder(s"$${clientName}:$${methodName}")(httpClient)
           val allHeaders = headers ++ scala.collection.immutable.Seq[Option[HttpHeader]]().flatten
           makeRequest(HttpMethods.GET, host + basePath + "/foo" + "?" + Formatter.addArg("bleep", bleep), allHeaders, HttpEntity.Empty, HttpProtocols.`HTTP/1.1`).flatMap(req => EitherT(tracingHttpClient(req).flatMap(resp => resp.status match {
             case StatusCodes.OK =>
@@ -105,7 +105,7 @@ class AkkaHttpClientTracingTest extends AnyFunSuite with Matchers with SwaggerSp
           }))
         }
         def getFoo(traceBuilder: TraceBuilder, methodName: String = "get-foo", headers: List[HttpHeader] = Nil): EitherT[Future, Either[Throwable, HttpResponse], GetFooResponse] = {
-          val tracingHttpClient = traceBuilder(s"$$clientName:$$methodName")(httpClient)
+          val tracingHttpClient = traceBuilder(s"$${clientName}:$${methodName}")(httpClient)
           val allHeaders = headers ++ scala.collection.immutable.Seq[Option[HttpHeader]]().flatten
           makeRequest(HttpMethods.GET, host + basePath + "/foo", allHeaders, HttpEntity.Empty, HttpProtocols.`HTTP/1.1`).flatMap(req => EitherT(tracingHttpClient(req).flatMap(resp => resp.status match {
             case StatusCodes.OK =>

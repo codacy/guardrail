@@ -561,7 +561,7 @@ class Http4sServerGenerator private (version: Http4sVersion) extends ServerTerms
                         ).pure[F]
                         case _ => err.toHttpResponse[F](req.httpVersion).pure[F]
                       },
-                  ${param"$paramName"} => $content
+                  ${Term.Param(Nil, paramName, None, None)} => $content
                   )
               """
       }
@@ -880,7 +880,7 @@ class Http4sServerGenerator private (version: Http4sVersion) extends ServerTerms
             securityRequirements.map { sr =>
               val arg                  = LanguageParameter.fromParam(param"authContext: $authContextTypeName")
               val securityRequirements = renderCustomSecurityRequirements(sr)
-              val authContextParam     = param"${arg.paramName}"
+              val authContextParam     = Term.Param(Nil, arg.paramName, None, None)
 
               val middlewareArgs = List(securityRequirements) ++ (securityExposure match {
                 case SecurityExposure.Optional =>
@@ -910,7 +910,7 @@ class Http4sServerGenerator private (version: Http4sVersion) extends ServerTerms
               }
               val arg                  = LanguageParameter.fromParam(param"authContext: $inner")
               val securityRequirements = renderCustomSecurityRequirements(sr)
-              val authContextParam     = param"${arg.paramName}"
+              val authContextParam     = Term.Param(Nil, arg.paramName, None, None)
 
               val authTransformer: Term => Term = inner =>
                 if (sr.optional)
@@ -1013,7 +1013,7 @@ class Http4sServerGenerator private (version: Http4sVersion) extends ServerTerms
         val matchers        = (http4sForm ++ http4sHeaders).flatMap(_.matcher)
         val responseInMatch = NonEmptyList.fromList(matchers).fold(responseExpr) {
           case NonEmptyList((expr, pat), Nil) =>
-            Term.Match(expr, List(Case(pat, None, responseExpr), Case(p"_", None, q"""BadRequest("Invalid data")""")), Nil)
+            Term.Match(expr, Term.CasesBlock(List(Case(pat, None, responseExpr), Case(p"_", None, q"""BadRequest("Invalid data")"""))), Nil)
           case matchers @ NonEmptyList(_, _) =>
             val NonEmptyList(head, xs) = matchers.reverse
             val (base, rest)           = xs.splitAt(21).bimap(left => NonEmptyList(head, left).reverse, _.grouped(21).map(_.reverse.unzip).toList)
@@ -1031,9 +1031,11 @@ class Http4sServerGenerator private (version: Http4sVersion) extends ServerTerms
             }
             Term.Match(
               fullTerm,
-              List(
-                Case(fullPat, None, responseExpr),
-                Case(Pat.Wildcard(), None, q"""BadRequest("Invalid data")""")
+              Term.CasesBlock(
+                List(
+                  Case(fullPat, None, responseExpr),
+                  Case(Pat.Wildcard(), None, q"""BadRequest("Invalid data")""")
+                )
               ),
               Nil
             )

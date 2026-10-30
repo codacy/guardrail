@@ -26,14 +26,14 @@ class PathParserSpec extends AnyFunSuite with Matchers with EitherValues with Op
   implicit val modelGeneratorType: ModelGeneratorType = CirceModelGenerator.V012
 
   List[(String, Term)](
-    ("", q""" host + basePath """),
-    ("/", q""" host + basePath + "/" """),
-    ("/foo", q""" host + basePath + "/foo" """),
-    ("/foo/", q""" host + basePath + "/foo/" """),
-    ("/{foo}", q""" host + basePath + "/" + Formatter.addPath(foo) """),
-    ("/{foo}.json", q""" host + basePath + "/" + Formatter.addPath(foo) + ".json" """),
-    ("/{foo}/{bar}.json", q""" host + basePath + "/" + Formatter.addPath(foo) + "/" + Formatter.addPath(bar) + ".json" """),
-    ("/{foo_bar}/{bar_baz}.json", q""" host + basePath + "/" + Formatter.addPath(fooBar) + "/" + Formatter.addPath(barBaz) + ".json" """)
+    ("", q"""host + basePath"""),
+    ("/", q"""host + basePath + "/""""),
+    ("/foo", q"""host + basePath + "/foo""""),
+    ("/foo/", q"""host + basePath + "/foo/""""),
+    ("/{foo}", q"""host + basePath + "/" + Formatter.addPath(foo)"""),
+    ("/{foo}.json", q"""host + basePath + "/" + Formatter.addPath(foo) + ".json""""),
+    ("/{foo}/{bar}.json", q"""host + basePath + "/" + Formatter.addPath(foo) + "/" + Formatter.addPath(bar) + ".json""""),
+    ("/{foo_bar}/{bar_baz}.json", q"""host + basePath + "/" + Formatter.addPath(fooBar) + "/" + Formatter.addPath(barBaz) + ".json"""")
   ).foreach { case (str, expected) =>
     test(s"Client $str") {
       val gen = Target.unsafeExtract(generateUrlPathParams(Tracker(str), args))
@@ -42,12 +42,12 @@ class PathParserSpec extends AnyFunSuite with Matchers with EitherValues with Op
   }
 
   List[(String, Term)](
-    ("", q""" pathEnd """),
-    ("foo", q""" path("foo") """),
-    ("foo/bar", q""" path("foo" / "bar") """),
-    ("foo//bar", q""" path("foo" / "bar") """),
-    ("foo/", q""" pathPrefix("foo") & pathEndOrSingleSlash """),
-    ("{foo}", q""" path(IntNumber) """),
+    ("", q"""pathEnd"""),
+    ("foo", q"""path("foo")"""),
+    ("foo/bar", q"""path("foo" / "bar")"""),
+    ("foo//bar", q"""path("foo" / "bar")"""),
+    ("foo/", q"""pathPrefix("foo") & pathEndOrSingleSlash"""),
+    ("{foo}", q"""path(IntNumber)"""),
     (
       "{foo}.json",
       q""" path(new scala.util.matching.Regex("^" + "" + "(.*)" + ".json" + ${Lit
@@ -63,16 +63,16 @@ class PathParserSpec extends AnyFunSuite with Matchers with EitherValues with Op
       q""" path(IntNumber / new scala.util.matching.Regex("^" + "" + "(.*)" + ".json" + ${Lit
           .String("$")}).flatMap(str => _root_.io.circe.Json.fromString(str).as[Int].toOption)) """
     ),
-    ("foo?abort=1", q""" path("foo") & parameter("abort").require(_ == "1") """),
+    ("foo?abort=1", q"""path("foo") & parameter("abort").require(_ == "1")"""),
     (
       "{foo}.json?abort=1",
       q""" path(new scala.util.matching.Regex("^" + "" + "(.*)" + ".json" + ${Lit
           .String("$")}).flatMap(str => _root_.io.circe.Json.fromString(str).as[Int].toOption)) & parameter("abort").require(_ == "1") """
     ),
-    ("?", q""" pathEnd """),
-    ("?a", q""" pathEnd & parameter("a").require(_ == "") """),
-    ("?=", q""" pathEnd & parameter("").require(_ == "") """),
-    ("?=b", q""" pathEnd & parameter("").require(_ == "b") """)
+    ("?", q"""pathEnd"""),
+    ("?a", q"""pathEnd & parameter("a").require(_ == "")"""),
+    ("?=", q"""pathEnd & parameter("").require(_ == "")"""),
+    ("?=b", q"""pathEnd & parameter("").require(_ == "b")""")
   ).foreach { case (str, expected) =>
     test(s"Server ${str}") {
       val NonEmptyList((gen, _), _) =
@@ -106,19 +106,19 @@ class PathParserSpec extends AnyFunSuite with Matchers with EitherValues with Op
     staticQSArg.parseOnly("a").either.value shouldBe (("a", ""))
     staticQSArg.parseOnly("a=").either.value shouldBe (("a", ""))
     staticQSArg.parseOnly("a=b").either.value shouldBe (("a", "b"))
-    staticQSTerm.parseOnly("a").either.value should matchStructure(q""" parameter("a").require(_ == "") """)
-    staticQSTerm.parseOnly("a=b").either.value should matchStructure(q""" parameter("a").require(_ == "b") """)
-    staticQSTerm.parseOnly("=b").either.value should matchStructure(q""" parameter("").require(_ == "b") """)
+    staticQSTerm.parseOnly("a").either.value should matchStructure(q"""parameter("a").require(_ == "")""")
+    staticQSTerm.parseOnly("a=b").either.value should matchStructure(q"""parameter("a").require(_ == "b")""")
+    staticQSTerm.parseOnly("=b").either.value should matchStructure(q"""parameter("").require(_ == "b")""")
     staticQS.parseOnly("?").either.value.isEmpty shouldBe true
-    staticQS.parseOnly("?=").either.value.value should matchStructure(q""" parameter("").require(_ == "") """)
-    staticQS.parseOnly("?a=").either.value.value should matchStructure(q""" parameter("a").require(_ == "") """)
-    staticQS.parseOnly("?=b").either.value.value should matchStructure(q""" parameter("").require(_ == "b") """)
-    staticQS.parseOnly("?a=b").either.value.value should matchStructure(q""" parameter("a").require(_ == "b") """)
+    staticQS.parseOnly("?=").either.value.value should matchStructure(q"""parameter("").require(_ == "")""")
+    staticQS.parseOnly("?a=").either.value.value should matchStructure(q"""parameter("a").require(_ == "")""")
+    staticQS.parseOnly("?=b").either.value.value should matchStructure(q"""parameter("").require(_ == "b")""")
+    staticQS.parseOnly("?a=b").either.value.value should matchStructure(q"""parameter("a").require(_ == "b")""")
     staticQS
       .parseOnly("?a=b&c=d")
       .either
       .value
-      .value should matchStructure(q""" parameter("a").require(_ == "b") & parameter("c").require(_ == "d") """)
+      .value should matchStructure(q"""parameter("a").require(_ == "b") & parameter("c").require(_ == "d")""")
     pattern.parseOnly("").either.value should matchPattern { case (Nil, (false, None)) =>
     }
     pattern.parseOnly("?").either.value should matchPattern { case (Nil, (false, None)) =>

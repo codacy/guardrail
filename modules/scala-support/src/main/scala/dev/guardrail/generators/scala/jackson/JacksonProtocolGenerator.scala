@@ -1300,10 +1300,9 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
           .fold(base)(parent =>
             base.copy(
               templ = Template(
-                Nil,
+                None,
                 (parent.clsName +: parent.interfaces).map(n => Init(Type.Name(n), Name(""), List.empty[Term.ArgClause])),
-                Self(Name(""), None),
-                base.templ.stats,
+                Template.Body(None, base.templ.body.stats),
                 Nil
               )
             )
@@ -1422,8 +1421,7 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
   private def packageObjectImports() =
     Target.pure(List.empty)
 
-  override def generateSupportDefinitions() = {
-    val presenceTrait =
+  private def presenceTrait() =
       q"""sealed trait Presence[+T] extends _root_.scala.Product with _root_.scala.Serializable {
               def fold[R](ifAbsent: => R,
                           ifPresent: T => R): R
@@ -1432,7 +1430,8 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
               def toOption: Option[T] = fold[Option[T]](None, Some(_))
             }
            """
-    val presenceObject =
+
+  private def presenceObject() =
       q"""
             object Presence {
                     import com.fasterxml.jackson.annotation.JsonInclude
@@ -1590,7 +1589,9 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
               }
             }
            """
-    val presenceDefinition = SupportDefinition[ScalaLanguage](q"Presence", Nil, List(presenceTrait, presenceObject), insideDefinitions = false)
+
+  override def generateSupportDefinitions() = {
+    val presenceDefinition = SupportDefinition[ScalaLanguage](q"Presence", Nil, List(presenceTrait(), presenceObject()), insideDefinitions = false)
     Target.pure(
       List(
         presenceDefinition,
@@ -1639,12 +1640,9 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
       List.empty
     )
 
-  private def implicitsObject() = Target.pure(
-    Some(
-      (
-        q"JacksonImplicits",
-        q"""
-            object JacksonImplicits {
+  private def implicitsEncoderStats(): List[Stat] =
+      q"""
+            object Part {
               object constraints {
                 type NotNull = javax.validation.constraints.NotNull @scala.annotation.meta.field @scala.annotation.meta.param
               }
@@ -1675,7 +1673,12 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
                 implicit val guardrailEncodeOffsetDateTime: GuardrailEncoder[java.time.OffsetDateTime] = instance
                 implicit val guardrailEncodeZonedDateTime: GuardrailEncoder[java.time.ZonedDateTime] = instance
               }
+            }
+         """.templ.body.stats
 
+  private def implicitsDecoderStats(): List[Stat] =
+      q"""
+            object Part {
               trait GuardrailDecoder[A] {
                 def tpe: Either[com.fasterxml.jackson.core.`type`.TypeReference[A], Class[A]]
                 def decode(jsonNode: com.fasterxml.jackson.databind.JsonNode)(implicit mapper: com.fasterxml.jackson.databind.ObjectMapper, validator: javax.validation.Validator, guardrailValidator: GuardrailValidator[A]): scala.util.Try[A] =
@@ -1741,7 +1744,12 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
                 implicit val guardrailDecodeOffsetDateTime: GuardrailDecoder[java.time.OffsetDateTime] = instance(classOf[java.time.OffsetDateTime])
                 implicit val guardrailDecodeZonedDateTime: GuardrailDecoder[java.time.ZonedDateTime] = instance(classOf[java.time.ZonedDateTime])
               }
+            }
+         """.templ.body.stats
 
+  private def implicitsValidatorStats(): List[Stat] =
+      q"""
+            object Part {
               trait GuardrailValidator[A] {
                 def validate(a: A)(implicit validator: javax.validation.Validator): scala.util.Try[A]
               }
@@ -1790,7 +1798,14 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
                 implicit val guardrailValidateZonedDateTime: GuardrailValidator[java.time.ZonedDateTime] = noop
               }
             }
-         """
+         """.templ.body.stats
+
+
+  private def implicitsObject() = Target.pure(
+    Some(
+      (
+        q"JacksonImplicits",
+        q"object JacksonImplicits { ..${implicitsEncoderStats() ++ implicitsDecoderStats() ++ implicitsValidatorStats()} }"
       )
     )
   )
@@ -1901,9 +1916,15 @@ class JacksonProtocolGenerator private extends ProtocolTerms[ScalaLanguage, Targ
         ))
          """
         ) ++ renderedTrait.mods,
-        templ = renderedTrait.templ.copy(
-          stats =
-            renderedTrait.templ.stats ++ discriminatorParam.map(param => q"def ${Term.Name(param.term.name.value)}: ${param.term.decltpe.getOrElse(t"Any")}")
+        templ = Template(
+          renderedTrait.templ.earlyClause,
+          renderedTrait.templ.inits,
+          renderedTrait.templ.body.copy(
+            stats = renderedTrait.templ.body.stats ++ discriminatorParam.map(param =>
+              q"def ${Term.Name(param.term.name.value)}: ${param.term.decltpe.getOrElse(t"Any")}"
+            )
+          ),
+          renderedTrait.templ.derives
         )
       )
     }
