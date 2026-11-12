@@ -252,6 +252,7 @@ class ScalaGenerator private extends LanguageTerms[ScalaLanguage, Target] {
               implicit val showBoolean: Show[Boolean] = build[Boolean](_.toString)
               implicit val showLocalDate: Show[java.time.LocalDate] = build(_.format(java.time.format.DateTimeFormatter.ISO_DATE))
               implicit val showOffsetDateTime: Show[java.time.OffsetDateTime] = build(_.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+              implicit val showInstant: Show[java.time.Instant] = build(_.toString)
               implicit val showJavaURL: Show[java.net.URI] = build(_.toString)
               implicit val showUUID: Show[java.util.UUID] = build(_.toString)
             }
