@@ -147,6 +147,23 @@ class AkkaHttpGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGenerato
             }
           }
 
+          final class UnsuccessfulResponseException(val response: AnyRef) extends RuntimeException("Unsuccessful response: " + response)
+          final class UnexpectedResponseException(val response: HttpResponse) extends RuntimeException("Unexpected response status: " + response.status)
+
+          // Implemented by the client response types that have exactly one successful (2xx) case
+          trait ClientResponse[+S] {
+            def successOrThrow: S
+          }
+
+          implicit final class ClientResultOps[A](private val self: EitherT[Future, Either[Throwable, HttpResponse], A]) extends AnyVal {
+            def future(implicit ec: ExecutionContext): Future[A] = self.value.flatMap {
+              case Right(value)          => Future.successful(value)
+              case Left(Left(error))     => Future.failed(error)
+              case Left(Right(response)) => Future.failed(new UnexpectedResponseException(response))
+            }
+            def success[S](implicit ev: A <:< ClientResponse[S], ec: ExecutionContext): Future[S] = future.map(ev(_).successOrThrow)
+          }
+
           ..$protocolImplicits
         }
       """

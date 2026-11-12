@@ -516,7 +516,34 @@ class AkkaHttpClientGenerator private (modelGeneratorType: ModelGeneratorType) e
       responses: Responses[ScalaLanguage],
       protocolElems: List[StrictProtocolElems[ScalaLanguage]]
   ): Target[List[scala.meta.Defn]] =
-    Target.pure(ResponseADTHelper.generateResponseDefinitions(responseClsName, responses, protocolElems))
+    Target.pure(ResponseADTHelper.generateResponseDefinitions(responseClsName, responses, protocolElems).map {
+      case cls: Defn.Class => withSuccessOrThrow(cls, responseClsName, responses)
+      case other           => other
+    })
+
+  // Only responses with exactly one 2xx case can be unwrapped without ambiguity
+  private def withSuccessOrThrow(cls: Defn.Class, responseClsName: String, responses: Responses[ScalaLanguage]): Defn.Class =
+    responses.value.filter(r => r.statusCode >= 200 && r.statusCode < 300) match {
+      case success :: Nil if success.headers.value.isEmpty =>
+        val responseSuperTerm          = Term.Name(responseClsName)
+        val statusTerm                 = success.statusCodeName
+        val (successType, successCase) = success.value.fold[(Type, Case)](
+          (t"Unit", p"case $responseSuperTerm.$statusTerm => ()")
+        ) { case (_, valueType, _) =>
+          (valueType, p"case x: $responseSuperTerm.${Type.Name(statusTerm.value)} => x.value")
+        }
+        val failureCase = p"case other => throw new UnsuccessfulResponseException(other)"
+        val method      = q"def successOrThrow: $successType = ${Term.Match(Term.This(Name("")), Term.CasesBlock(List(successCase, failureCase)), Nil)}"
+        cls.copy(templ =
+          cls.templ.copy(
+            earlyClause = cls.templ.earlyClause,
+            derives = cls.templ.derives,
+            inits = cls.templ.inits :+ Init(Type.Apply(Type.Name("ClientResponse"), Type.ArgClause(List(successType))), Name(""), Seq.empty),
+            body = cls.templ.body.copy(stats = cls.templ.body.stats :+ method)
+          )
+        )
+      case _ => cls
+    }
   private def generateSupportDefinitions(
       tracing: Boolean,
       securitySchemes: Map[String, SecurityScheme[ScalaLanguage]]
