@@ -54,7 +54,7 @@ class Issue122 extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sca
   test("Ensure clients are able to pass sequences of values for array form parameters") {
     val (
       _,
-      Clients(Client(tags, className, imports, staticDefns, cls, _) :: _, Nil),
+      Clients(Client(tags, className, imports, staticDefns, cls, _) :: _, _),
       _
     )       = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
     val cmp = companionForStaticDefns(staticDefns)

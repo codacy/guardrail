@@ -129,7 +129,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
     val (
       _,
       _,
-      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, Nil)
+      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, _)
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 
     val handler = q"""
@@ -158,7 +158,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetRootResponse(val statusCode: StatusCode)
         case object GetRootResponseOK extends GetRootResponse(StatusCodes.OK)
-        object GetRootResponse {
+        object GetRootResponse extends support.RespondsEmptyOK[GetRootResponse] {
           implicit def getRootResponseTRM: ToResponseMarshaller[GetRootResponse] = Marshaller { implicit ec =>
             resp => getRootResponseTR(resp)
           }
@@ -173,7 +173,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class PutBarResponse(val statusCode: StatusCode)
         case class PutBarResponseOK(value: Boolean) extends PutBarResponse(StatusCodes.OK)
-        object PutBarResponse {
+        object PutBarResponse extends support.RespondsOK[Boolean, PutBarResponse] {
           implicit def putBarResponseTRM: ToResponseMarshaller[PutBarResponse] = Marshaller { implicit ec =>
             resp => putBarResponseTR(resp)
           }
@@ -191,7 +191,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetFooResponse(val statusCode: StatusCode)
         case class GetFooResponseOK(value: Boolean) extends GetFooResponse(StatusCodes.OK)
-        object GetFooResponse {
+        object GetFooResponse extends support.RespondsOK[Boolean, GetFooResponse] {
           implicit def getFooResponseTRM: ToResponseMarshaller[GetFooResponse] = Marshaller { implicit ec =>
             resp => getFooResponseTR(resp)
           }
@@ -209,7 +209,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetFooBarResponse(val statusCode: StatusCode)
         case class GetFooBarResponseOK(value: Boolean) extends GetFooBarResponse(StatusCodes.OK)
-        object GetFooBarResponse {
+        object GetFooBarResponse extends support.RespondsOK[Boolean, GetFooBarResponse] {
           implicit def getFooBarResponseTRM: ToResponseMarshaller[GetFooBarResponse] = Marshaller { implicit ec =>
             resp => getFooBarResponseTR(resp)
           }
@@ -229,7 +229,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         case class GetOrderByIdResponseOK(value: Order) extends GetOrderByIdResponse(StatusCodes.OK)
         case object GetOrderByIdResponseBadRequest extends GetOrderByIdResponse(StatusCodes.BadRequest)
         case object GetOrderByIdResponseNotFound extends GetOrderByIdResponse(StatusCodes.NotFound)
-        object GetOrderByIdResponse {
+        object GetOrderByIdResponse extends support.RespondsOK[Order, GetOrderByIdResponse] with support.RespondsEmptyBadRequest[GetOrderByIdResponse] with support.RespondsEmptyNotFound[GetOrderByIdResponse] {
           implicit def getOrderByIdResponseTRM: ToResponseMarshaller[GetOrderByIdResponse] = Marshaller { implicit ec =>
             resp => getOrderByIdResponseTR(resp)
           }
@@ -266,7 +266,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
     val (
       _,
       _,
-      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, Nil)
+      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, _)
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty.withTracing(true), "akka-http")
 
     val handler = q"""
@@ -295,7 +295,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetRootResponse(val statusCode: StatusCode)
         case object GetRootResponseOK extends GetRootResponse(StatusCodes.OK)
-        object GetRootResponse {
+        object GetRootResponse extends support.RespondsEmptyOK[GetRootResponse] {
           implicit def getRootResponseTRM: ToResponseMarshaller[GetRootResponse] = Marshaller { implicit ec =>
             resp => getRootResponseTR(resp)
           }
@@ -310,7 +310,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class PutBarResponse(val statusCode: StatusCode)
         case class PutBarResponseOK(value: Boolean) extends PutBarResponse(StatusCodes.OK)
-        object PutBarResponse {
+        object PutBarResponse extends support.RespondsOK[Boolean, PutBarResponse] {
           implicit def putBarResponseTRM: ToResponseMarshaller[PutBarResponse] = Marshaller { implicit ec =>
             resp => putBarResponseTR(resp)
           }
@@ -328,7 +328,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetFooResponse(val statusCode: StatusCode)
         case class GetFooResponseOK(value: Boolean) extends GetFooResponse(StatusCodes.OK)
-        object GetFooResponse {
+        object GetFooResponse extends support.RespondsOK[Boolean, GetFooResponse] {
           implicit def getFooResponseTRM: ToResponseMarshaller[GetFooResponse] = Marshaller { implicit ec =>
             resp => getFooResponseTR(resp)
           }
@@ -346,7 +346,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetFooBarResponse(val statusCode: StatusCode)
         case class GetFooBarResponseOK(value: Boolean) extends GetFooBarResponse(StatusCodes.OK)
-        object GetFooBarResponse {
+        object GetFooBarResponse extends support.RespondsOK[Boolean, GetFooBarResponse] {
           implicit def getFooBarResponseTRM: ToResponseMarshaller[GetFooBarResponse] = Marshaller { implicit ec =>
             resp => getFooBarResponseTR(resp)
           }
@@ -366,7 +366,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         case class GetOrderByIdResponseOK(value: Order) extends GetOrderByIdResponse(StatusCodes.OK)
         case object GetOrderByIdResponseBadRequest extends GetOrderByIdResponse(StatusCodes.BadRequest)
         case object GetOrderByIdResponseNotFound extends GetOrderByIdResponse(StatusCodes.NotFound)
-        object GetOrderByIdResponse {
+        object GetOrderByIdResponse extends support.RespondsOK[Order, GetOrderByIdResponse] with support.RespondsEmptyBadRequest[GetOrderByIdResponse] with support.RespondsEmptyNotFound[GetOrderByIdResponse] {
           implicit def getOrderByIdResponseTRM: ToResponseMarshaller[GetOrderByIdResponse] = Marshaller { implicit ec =>
             resp => getOrderByIdResponseTR(resp)
           }
@@ -403,7 +403,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
     val (
       _,
       _,
-      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, Nil)
+      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, _)
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty.withCustomExtraction(true), "akka-http")
 
     val handler = q"""
@@ -432,7 +432,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetRootResponse(val statusCode: StatusCode)
         case object GetRootResponseOK extends GetRootResponse(StatusCodes.OK)
-        object GetRootResponse {
+        object GetRootResponse extends support.RespondsEmptyOK[GetRootResponse] {
           implicit def getRootResponseTRM: ToResponseMarshaller[GetRootResponse] = Marshaller { implicit ec =>
             resp => getRootResponseTR(resp)
           }
@@ -447,7 +447,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class PutBarResponse(val statusCode: StatusCode)
         case class PutBarResponseOK(value: Boolean) extends PutBarResponse(StatusCodes.OK)
-        object PutBarResponse {
+        object PutBarResponse extends support.RespondsOK[Boolean, PutBarResponse] {
           implicit def putBarResponseTRM: ToResponseMarshaller[PutBarResponse] = Marshaller { implicit ec =>
             resp => putBarResponseTR(resp)
           }
@@ -465,7 +465,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetFooResponse(val statusCode: StatusCode)
         case class GetFooResponseOK(value: Boolean) extends GetFooResponse(StatusCodes.OK)
-        object GetFooResponse {
+        object GetFooResponse extends support.RespondsOK[Boolean, GetFooResponse] {
           implicit def getFooResponseTRM: ToResponseMarshaller[GetFooResponse] = Marshaller { implicit ec =>
             resp => getFooResponseTR(resp)
           }
@@ -483,7 +483,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         }
         sealed abstract class GetFooBarResponse(val statusCode: StatusCode)
         case class GetFooBarResponseOK(value: Boolean) extends GetFooBarResponse(StatusCodes.OK)
-        object GetFooBarResponse {
+        object GetFooBarResponse extends support.RespondsOK[Boolean, GetFooBarResponse] {
           implicit def getFooBarResponseTRM: ToResponseMarshaller[GetFooBarResponse] = Marshaller { implicit ec =>
             resp => getFooBarResponseTR(resp)
           }
@@ -503,7 +503,7 @@ class AkkaHttpServerTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
         case class GetOrderByIdResponseOK(value: Order) extends GetOrderByIdResponse(StatusCodes.OK)
         case object GetOrderByIdResponseBadRequest extends GetOrderByIdResponse(StatusCodes.BadRequest)
         case object GetOrderByIdResponseNotFound extends GetOrderByIdResponse(StatusCodes.NotFound)
-        object GetOrderByIdResponse {
+        object GetOrderByIdResponse extends support.RespondsOK[Order, GetOrderByIdResponse] with support.RespondsEmptyBadRequest[GetOrderByIdResponse] with support.RespondsEmptyNotFound[GetOrderByIdResponse] {
           implicit def getOrderByIdResponseTRM: ToResponseMarshaller[GetOrderByIdResponse] = Marshaller { implicit ec =>
             resp => getOrderByIdResponseTR(resp)
           }

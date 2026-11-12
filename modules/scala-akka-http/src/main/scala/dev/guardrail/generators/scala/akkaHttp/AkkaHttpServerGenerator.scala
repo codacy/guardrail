@@ -9,6 +9,7 @@ import dev.guardrail._
 import dev.guardrail.core.LiteralRawType
 import dev.guardrail.core.MapRawType
 import dev.guardrail.core.ReifiedRawType
+import dev.guardrail.core.SupportDefinition
 import dev.guardrail.core.Tracker
 import dev.guardrail.core.VectorRawType
 import dev.guardrail.core.extract.ServerRawResponse
@@ -74,6 +75,35 @@ object AkkaHttpServerGenerator {
   def apply(akkaHttpVersion: AkkaHttpVersion, modelGeneratorType: ModelGeneratorType): ServerTerms[ScalaLanguage, Target] =
     new AkkaHttpServerGenerator(akkaHttpVersion, modelGeneratorType)
 
+  /** Per-status response constructors that every operation's response companion mixes in, so handlers can take `RespondsBadRequest[BadRequest, R]` (or several,
+    * combined with `with`) instead of the operation-specific response type. The traits are generic in the value type, which keeps each file identical across
+    * specs generated into the same package.
+    */
+  private def responderTraitName(response: Response[ScalaLanguage]): String =
+    if (response.value.isDefined) s"Responds${response.statusCodeName.value}" else s"RespondsEmpty${response.statusCodeName.value}"
+
+  def collectResponderSupport(allResponses: List[Responses[ScalaLanguage]]): List[SupportDefinition[ScalaLanguage]] =
+    allResponses
+      .flatMap(_.value)
+      .filter(_.headers.value.isEmpty)
+      .map(response => (responderTraitName(response), response.statusCodeName, response.value.isDefined))
+      .distinct
+      .sortBy(_._1)
+      .map { case (name, status, hasValue) =>
+        val traitName = Type.Name(name)
+        val defn      = if (hasValue) q"trait $traitName[V, R] { def $status(value: V): R }" else q"trait $traitName[R] { def $status: R }"
+        SupportDefinition[ScalaLanguage](Term.Name(name), List.empty, List(defn), insideDefinitions = false)
+      }
+
+  def responderInit(supportPackage: NonEmptyList[String], response: Response[ScalaLanguage], responseSuperType: Type.Name): Option[Init] =
+    if (response.headers.value.nonEmpty) None
+    else {
+      val prefix   = supportPackage.tail.foldLeft[Term.Ref](Term.Name(supportPackage.head))((acc, part) => Term.Select(acc, Term.Name(part)))
+      val traitTpe = Type.Select(prefix, Type.Name(responderTraitName(response)))
+      val args     = response.value.map(_._2).toList :+ responseSuperType
+      Some(Init(Type.Apply(traitTpe, Type.ArgClause(args)), Name(""), Seq.empty))
+    }
+
   def generateUrlPathExtractors(
       path: Tracker[String],
       pathArgs: List[LanguageParameter[ScalaLanguage]],
@@ -133,7 +163,14 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
     for {
       extraImports       <- getExtraImports(context.tracing, supportPackage)
       supportDefinitions <- generateSupportDefinitions(context.tracing, securitySchemes)
-      servers            <- groupedRoutes.traverse { case (className, unsortedRoutes) =>
+      allResponses       <- groupedRoutes.flatMap(_._2).traverse { route =>
+        for {
+          operationId <- getOperationId(route.operation)
+          responses   <- Responses.getResponses[ScalaLanguage, Target](operationId, route.operation, protocolElems, components)
+        } yield responses
+      }
+      responderSupport = AkkaHttpServerGenerator.collectResponderSupport(allResponses)
+      servers <- groupedRoutes.traverse { case (className, unsortedRoutes) =>
         val routes = unsortedRoutes
           .groupBy(_.path.unwrapTracker.indexOf('{'))
           .view
@@ -150,7 +187,7 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
               operationId           <- getOperationId(operation)
               responses             <- Responses.getResponses[ScalaLanguage, Target](operationId, operation, protocolElems, components)
               responseClsName       <- formatTypeName(operationId, Some("Response"))
-              responseDefinitions   <- generateResponseDefinitions(responseClsName, responses, protocolElems)
+              responseDefinitions   <- generateResponseDefinitions(responseClsName, responses, protocolElems, supportPackage)
               methodName            <- formatMethodName(operationId)
               parameters            <- route.getParameters[ScalaLanguage, Target](components, protocolElems)
               customExtractionField <- buildCustomExtractionFields(operation, className, context.customExtraction)
@@ -206,7 +243,7 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
           )
         } yield Server[ScalaLanguage](className, frameworkImports ++ extraImports, handlerSrc, classSrc)
       }
-    } yield Servers[ScalaLanguage](servers, supportDefinitions)
+    } yield Servers[ScalaLanguage](servers, supportDefinitions ++ responderSupport)
   }
 
   private def splitOperationParts(operationId: String): (List[String], String) = {
@@ -217,12 +254,14 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
   private def generateResponseDefinitions(
       responseClsName: String,
       responses: Responses[ScalaLanguage],
-      protocolElems: List[StrictProtocolElems[ScalaLanguage]]
+      protocolElems: List[StrictProtocolElems[ScalaLanguage]],
+      supportPackage: NonEmptyList[String]
   ) =
     for {
       _ <- Target.pure(())
       responseSuperType = Type.Name(responseClsName)
       responseSuperTerm = Term.Name(responseClsName)
+      responderInits    = responses.value.flatMap(AkkaHttpServerGenerator.responderInit(supportPackage, _, responseSuperType))
       instances         = responses.value.map { case resp @ Response(statusCodeName, _, headers) =>
         val statusCode       = q"StatusCodes.${statusCodeName}"
         val responseTerm     = Term.Name(s"${responseClsName}${statusCodeName.value}")
@@ -288,7 +327,7 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
       protocolImplicits <- AkkaHttpHelper.protocolImplicits(modelGeneratorType)
       toResponseImplicits = List(param"ec: scala.concurrent.ExecutionContext") ++ protocolImplicits
       companion           = q"""
-          object ${responseSuperTerm} {
+          object ${responseSuperTerm} extends ..$responderInits {
           ${Defn.Def(
           List(mod"implicit"),
           Term.Name(s"${responseClsName.uncapitalized}TRM"),
@@ -886,7 +925,12 @@ class AkkaHttpServerGenerator private (akkaHttpVersion: AkkaHttpVersion, modelGe
                             Nil
                           }
                         }).mapAsync(1)(${Term.Block(
-                      List(Term.Function(Term.ParamClause(List(Term.Param(List.empty, q"part", None, None))), Term.Match(q"part.name", Term.CasesBlock(allCases), Nil)))
+                      List(
+                        Term.Function(
+                          Term.ParamClause(List(Term.Param(List.empty, q"part", None, None))),
+                          Term.Match(q"part.name", Term.CasesBlock(allCases), Nil)
+                        )
+                      )
                     )})
                           .toMat(Sink.seq[Either[Throwable, ${Type.Select(partsTerm, Type.Name("Part"))}]])(Keep.right).run()
                       } yield {

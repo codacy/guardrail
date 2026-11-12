@@ -87,7 +87,7 @@ class HttpBodiesTest extends AnyFunSuite with Matchers with SwaggerSpecRunner wi
   test("Properly handle all methods") {
     val (
       _,
-      Clients(Client(tags, className, _, _, cls, _) :: _, Nil),
+      Clients(Client(tags, className, _, _, cls, _) :: _, _),
       _
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 

@@ -33,7 +33,7 @@ class StaticParametersTest extends AnyFunSuite with Matchers with SwaggerSpecRun
     |""".stripMargin
 
   test("Should produce static parameter constraints") {
-    val (_, _, Servers(Server(_, _, genHandler, genResource :: Nil) :: Nil, Nil)) =
+    val (_, _, Servers(Server(_, _, genHandler, genResource :: Nil) :: Nil, _)) =
       runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 
     val handler = q"""
@@ -54,7 +54,7 @@ class StaticParametersTest extends AnyFunSuite with Matchers with SwaggerSpecRun
         }
         sealed abstract class GetFoo2Response(val statusCode: StatusCode)
         case object GetFoo2ResponseOK extends GetFoo2Response(StatusCodes.OK)
-        object GetFoo2Response {
+        object GetFoo2Response extends support.RespondsEmptyOK[GetFoo2Response] {
           implicit def getFoo2ResponseTRM: ToResponseMarshaller[GetFoo2Response] = Marshaller { implicit ec =>
             resp => getFoo2ResponseTR(resp)
           }
@@ -69,7 +69,7 @@ class StaticParametersTest extends AnyFunSuite with Matchers with SwaggerSpecRun
         }
         sealed abstract class GetFoo1Response(val statusCode: StatusCode)
         case object GetFoo1ResponseOK extends GetFoo1Response(StatusCodes.OK)
-        object GetFoo1Response {
+        object GetFoo1Response extends support.RespondsEmptyOK[GetFoo1Response] {
           implicit def getFoo1ResponseTRM: ToResponseMarshaller[GetFoo1Response] = Marshaller { implicit ec =>
             resp => getFoo1ResponseTR(resp)
           }

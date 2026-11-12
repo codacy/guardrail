@@ -52,7 +52,7 @@ class ParamConflictsTest extends AnyFunSuite with Matchers with SwaggerSpecRunne
   test("Generate non-conflicting names in clients") {
     val (
       _,
-      Clients(Client(tags, className, _, _, cls, _) :: _, Nil),
+      Clients(Client(tags, className, _, _, cls, _) :: _, _),
       _
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 
