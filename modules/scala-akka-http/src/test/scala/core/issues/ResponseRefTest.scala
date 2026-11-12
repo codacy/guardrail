@@ -46,8 +46,8 @@ class ResponseRefTest extends AnyFunSpec with Matchers with SwaggerSpecRunner {
 
   describe("Responses defined as a $ref to components/responses") {
     it("should carry the referenced schema as the response value") {
-      val (_, Clients(Client(_, _, _, _, _, statements) :: _, Nil), _) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
-      val rendered                                                     = statements.map(_.syntax).mkString("\n")
+      val (_, Clients(Client(_, _, _, _, _, statements) :: _, _), _) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
+      val rendered                                                   = statements.map(_.syntax).mkString("\n")
 
       rendered should include("case class BadRequest(value: ")
       rendered should not include "case object BadRequest"
@@ -89,8 +89,8 @@ class ResponseRefTest extends AnyFunSpec with Matchers with SwaggerSpecRunner {
           |          type: string
           |""".stripMargin
 
-      val (_, Clients(Client(_, _, _, staticDefns, cls, _) :: _, Nil), _) = runSwaggerSpec(scalaInterpreter)(csvSpec)(Context.empty, "akka-http")
-      val rendered = (cls.toList.map(_.toString) ++ staticDefns.definitions.map(_.toString)).mkString("\n")
+      val (_, Clients(Client(_, _, _, staticDefns, cls, _) :: _, _), _) = runSwaggerSpec(scalaInterpreter)(csvSpec)(Context.empty, "akka-http")
+      val rendered                                                      = (cls.toList.map(_.toString) ++ staticDefns.definitions.map(_.toString)).mkString("\n")
 
       rendered should include("getReportBadRequestDecoder")
     }
