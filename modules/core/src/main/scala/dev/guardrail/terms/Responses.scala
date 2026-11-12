@@ -54,7 +54,10 @@ object Responses {
             resolvedResp <- resp
               .downField("$ref", _.get$ref())
               .indexedDistribute
-              .fold[F[Tracker[ApiResponse]]](resp.pure[F])(ref => Sw.dereferenceResponse(ref, components))
+              .fold[F[Tracker[ApiResponse]]](resp.pure[F])(ref =>
+                // refs that point elsewhere (older specs put a schema ref here) are left untouched
+                if (ref.unwrapTracker.startsWith("#/components/responses/")) Sw.dereferenceResponse(ref, components) else resp.pure[F]
+              )
             valueTypes <- (for {
               (rawContentType, content) <- resolvedResp.downField("content", _.getContent()).indexedDistribute.value
               contentType               <- ContentType.unapply(rawContentType).toList

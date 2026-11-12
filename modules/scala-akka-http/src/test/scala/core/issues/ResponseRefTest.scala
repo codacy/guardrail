@@ -52,5 +52,30 @@ class ResponseRefTest extends AnyFunSpec with Matchers with SwaggerSpecRunner {
       rendered should include("case class BadRequest(value: ")
       rendered should not include "case object BadRequest"
     }
+
+    it("should leave refs that do not point at components/responses untouched") {
+      val legacySpec =
+        """
+          |swagger: '2.0'
+          |info:
+          |  title: Whatever
+          |  version: 1.0.0
+          |paths:
+          |  /users:
+          |    get:
+          |      operationId: getUsers
+          |      responses:
+          |        200:
+          |          $ref: '#/definitions/User'
+          |definitions:
+          |  User:
+          |    type: object
+          |    properties:
+          |      id:
+          |        type: string
+          |""".stripMargin
+
+      noException should be thrownBy runSwaggerSpec(scalaInterpreter)(legacySpec)(Context.empty, "akka-http")
+    }
   }
 }
