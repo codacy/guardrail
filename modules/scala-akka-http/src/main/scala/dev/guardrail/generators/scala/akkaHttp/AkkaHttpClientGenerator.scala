@@ -435,9 +435,8 @@ class AkkaHttpClientGenerator private (modelGeneratorType: ModelGeneratorType) e
         .downField("produces", _.produces)
         .map { xs =>
           val declared = xs.flatMap(ContentType.unapply(_))
-          val resolved = resolvedProduces
-            .foldLeft(List.empty[ContentType])((acc, contentType) => if ((declared ++ acc).exists(_.value == contentType.value)) acc else acc :+ contentType)
-          NonEmptyList.fromList(declared ++ resolved).getOrElse(NonEmptyList.one(ApplicationJson.empty))
+          val all      = resolvedProduces.foldLeft(declared)((acc, contentType) => if (acc.exists(_.value == contentType.value)) acc else acc :+ contentType)
+          NonEmptyList.fromList(all).getOrElse(NonEmptyList.one(ApplicationJson.empty))
         }
       consumes = operation.unwrapTracker.consumes.toList.flatMap(ContentType.unapply(_))
 
