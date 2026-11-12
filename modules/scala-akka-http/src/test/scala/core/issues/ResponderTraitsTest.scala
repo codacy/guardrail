@@ -70,7 +70,8 @@ class ResponderTraitsTest extends AnyFunSpec with Matchers with SwaggerSpecRunne
   private val (traits, companions) = {
     val (_, _, Servers(servers, support)) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
     val traitDefns                        = support.collect { case SupportDefinition(_, _, defn, false) => defn }.flatten.collect { case t: Defn.Trait => t }
-    val companionSrc                      = servers.flatMap(_.serverDefinitions).flatMap(_.collect { case o: Defn.Object if o.name.value.endsWith("Response") => o.name.value -> o.syntax }).toMap
+    val companionSrc                      =
+      servers.flatMap(_.serverDefinitions).flatMap(_.collect { case o: Defn.Object if o.name.value.endsWith("Response") => o.name.value -> o.syntax }).toMap
     (traitDefns.map(t => t.name.value -> t.syntax).toMap, companionSrc)
   }
 
