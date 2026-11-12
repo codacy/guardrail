@@ -46,11 +46,53 @@ class ResponseRefTest extends AnyFunSpec with Matchers with SwaggerSpecRunner {
 
   describe("Responses defined as a $ref to components/responses") {
     it("should carry the referenced schema as the response value") {
-      val (_, Clients(Client(_, _, _, _, _, statements) :: _, Nil), _) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
-      val rendered                                                      = statements.map(_.syntax).mkString("\n")
+      val (_, Clients(Client(_, _, _, _, _, statements) :: _, _), _) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
+      val rendered                                                   = statements.map(_.syntax).mkString("\n")
 
       rendered should include("case class BadRequest(value: ")
       rendered should not include "case object BadRequest"
+    }
+
+    it("should decode `$ref` responses of operations whose other responses have no decoder") {
+      val csvSpec =
+        """
+          |openapi: 3.0.0
+          |info:
+          |  title: Whatever
+          |  version: 1.0.0
+          |paths:
+          |  /report:
+          |    get:
+          |      operationId: getReport
+          |      responses:
+          |        '200':
+          |          description: Ok
+          |          content:
+          |            text/csv:
+          |              schema:
+          |                type: string
+          |        '400':
+          |          $ref: '#/components/responses/BadRequest'
+          |components:
+          |  responses:
+          |    BadRequest:
+          |      description: Invalid parameters
+          |      content:
+          |        application/json:
+          |          schema:
+          |            $ref: '#/components/schemas/BadRequest'
+          |  schemas:
+          |    BadRequest:
+          |      type: object
+          |      properties:
+          |        message:
+          |          type: string
+          |""".stripMargin
+
+      val (_, Clients(Client(_, _, _, staticDefns, cls, _) :: _, _), _) = runSwaggerSpec(scalaInterpreter)(csvSpec)(Context.empty, "akka-http")
+      val rendered                                                      = (cls.toList.map(_.toString) ++ staticDefns.definitions.map(_.toString)).mkString("\n")
+
+      rendered should include("getReportBadRequestDecoder")
     }
 
     it("should leave refs that do not point at components/responses untouched") {

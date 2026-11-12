@@ -429,13 +429,15 @@ class AkkaHttpClientGenerator private (modelGeneratorType: ModelGeneratorType) e
       // Placeholder for when more functions get logging
       _ <- Target.pure(())
 
-      produces = operation
+      // `$ref` responses have no content on the operation itself, so also take the content types of the resolved responses
+      resolvedProduces = responses.value.flatMap(_.value.map(_._1)).filterNot(ContentType.isSubtypeOf[AnyContentType])
+      produces         = operation
         .downField("produces", _.produces)
-        .map(xs =>
-          NonEmptyList
-            .fromList(xs.flatMap(ContentType.unapply(_)))
-            .getOrElse(NonEmptyList.one(ApplicationJson.empty))
-        )
+        .map { xs =>
+          val declared = xs.flatMap(ContentType.unapply(_))
+          val all      = resolvedProduces.foldLeft(declared)((acc, contentType) => if (acc.exists(_.value == contentType.value)) acc else acc :+ contentType)
+          NonEmptyList.fromList(all).getOrElse(NonEmptyList.one(ApplicationJson.empty))
+        }
       consumes = operation.unwrapTracker.consumes.toList.flatMap(ContentType.unapply(_))
 
       headerArgs = parameters.headerParams
