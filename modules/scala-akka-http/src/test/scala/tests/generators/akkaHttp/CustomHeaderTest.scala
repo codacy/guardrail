@@ -41,7 +41,7 @@ class CustomHeaderTest extends AnyFunSuite with Matchers with SwaggerSpecRunner 
                            |""".stripMargin
 
   test("Should produce static parameter constraints") {
-    val (_, Clients(client :: Nil, Nil), Servers(Server(_, _, genHandler, genResource :: Nil) :: Nil, Nil)) =
+    val (_, Clients(client :: Nil, _), Servers(Server(_, _, genHandler, genResource :: Nil) :: Nil, _)) =
       runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 
     val handler =
@@ -61,7 +61,7 @@ class CustomHeaderTest extends AnyFunSuite with Matchers with SwaggerSpecRunner 
         }
         sealed abstract class GetFooResponse(val statusCode: StatusCode)
         case object GetFooResponseOK extends GetFooResponse(StatusCodes.OK)
-        object GetFooResponse {
+        object GetFooResponse extends support.RespondsEmptyOK[GetFooResponse] {
           implicit def getFooResponseTRM: ToResponseMarshaller[GetFooResponse] = Marshaller { implicit ec =>
             resp => getFooResponseTR(resp)
           }

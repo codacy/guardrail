@@ -50,7 +50,7 @@ class MultipartTest extends AnyFunSuite with Matchers with SwaggerSpecRunner wit
   test("Multipart form data") {
     val (
       _,
-      Clients(Client(_, className, _, _, cls, _) :: _, Nil),
+      Clients(Client(_, className, _, _, cls, _) :: _, _),
       _
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 

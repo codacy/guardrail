@@ -48,7 +48,7 @@ class FormFieldsServerTest extends AnyFunSuite with Matchers with SwaggerSpecRun
     val (
       _,
       _,
-      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, Nil)
+      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, _)
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 
     val handler = q"""
@@ -180,7 +180,7 @@ class FormFieldsServerTest extends AnyFunSuite with Matchers with SwaggerSpecRun
         }
         sealed abstract class PutFooResponse(val statusCode: StatusCode)
         case object PutFooResponseOK extends PutFooResponse(StatusCodes.OK)
-        object PutFooResponse {
+        object PutFooResponse extends support.RespondsEmptyOK[PutFooResponse] {
           implicit def putFooResponseTRM: ToResponseMarshaller[PutFooResponse] = Marshaller { implicit ec =>
             resp => putFooResponseTR(resp)
           }

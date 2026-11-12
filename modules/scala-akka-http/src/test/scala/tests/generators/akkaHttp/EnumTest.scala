@@ -98,7 +98,7 @@ class EnumTest extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sca
   test("Use enums") {
     val (
       _,
-      Clients(Client(tags, className, _, staticDefns, cls, _) :: _, Nil),
+      Clients(Client(tags, className, _, staticDefns, cls, _) :: _, _),
       _
     )       = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
     val cmp = companionForStaticDefns(staticDefns)

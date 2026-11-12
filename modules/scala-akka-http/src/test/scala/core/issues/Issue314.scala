@@ -125,7 +125,7 @@ class Issue314 extends AnyFunSpec with Matchers with SwaggerSpecRunner {
          |  }
          |  sealed abstract class GetUserResponse(val statusCode: StatusCode)
          |  case object GetUserResponseOK extends GetUserResponse(StatusCodes.OK)
-         |  object GetUserResponse {
+         |  object GetUserResponse extends support.RespondsEmptyOK[GetUserResponse] {
          |    implicit def getUserResponseTRM: ToResponseMarshaller[GetUserResponse] = Marshaller { implicit ec =>
          |      resp => getUserResponseTR(resp)
          |    }
@@ -148,7 +148,7 @@ class Issue314 extends AnyFunSpec with Matchers with SwaggerSpecRunner {
     def verifyClient(config: String, expectedClassPrefix: String)(implicit pos: source.Position): Unit = {
       val (
         _,
-        Clients(Client(_, _, _, staticDefns, cls, _) :: _, Nil),
+        Clients(Client(_, _, _, staticDefns, cls, _) :: _, _),
         _
       )       = runSwaggerSpec(scalaInterpreter)(swagger(config))(Context.empty.withTagsBehaviour(TagsBehaviour.PackageFromTags), "akka-http")
       val cmp = companionForStaticDefns(staticDefns)
@@ -161,7 +161,7 @@ class Issue314 extends AnyFunSpec with Matchers with SwaggerSpecRunner {
       val (
         _,
         _,
-        Servers(Server(_, _, genHandler, genResource :: Nil) :: Nil, Nil)
+        Servers(Server(_, _, genHandler, genResource :: Nil) :: Nil, _)
       ) = runSwaggerSpec(scalaInterpreter)(swagger(config))(Context.empty.withTagsBehaviour(TagsBehaviour.PackageFromTags), "akka-http")
 
       verifyTree(genHandler, handler(expectedClassPrefix))

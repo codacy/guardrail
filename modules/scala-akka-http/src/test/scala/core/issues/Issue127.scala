@@ -36,7 +36,7 @@ class Issue127 extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sca
     val (
       _,
       _,
-      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, Nil)
+      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, _)
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 
     val handler = q"""
@@ -145,7 +145,7 @@ class Issue127 extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sca
         }
         sealed abstract class UploadFileResponse(val statusCode: StatusCode)
         case object UploadFileResponseCreated extends UploadFileResponse(StatusCodes.Created)
-        object UploadFileResponse {
+        object UploadFileResponse extends support.RespondsEmptyCreated[UploadFileResponse] {
           implicit def uploadFileResponseTRM: ToResponseMarshaller[UploadFileResponse] = Marshaller { implicit ec =>
             resp => uploadFileResponseTR(resp)
           }

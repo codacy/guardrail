@@ -49,7 +49,7 @@ class HardcodedQSSpec extends AnyFunSuite with Matchers with SwaggerSpecRunner w
   test("Test all cases") {
     val (
       _,
-      Clients(Client(tags, className, _, _, cls, _) :: _, Nil),
+      Clients(Client(tags, className, _, _, cls, _) :: _, _),
       _
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 

@@ -27,7 +27,7 @@ class Issue126 extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sca
     val (
       _,
       _,
-      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, Nil)
+      Servers(Server(pkg, extraImports, genHandler, genResource :: Nil) :: Nil, _)
     ) = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
 
     val handler = q"""
@@ -44,7 +44,7 @@ class Issue126 extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sca
         }
         sealed abstract class GetRootResponse(val statusCode: StatusCode)
         case object GetRootResponseOK extends GetRootResponse(StatusCodes.OK)
-        object GetRootResponse {
+        object GetRootResponse extends support.RespondsEmptyOK[GetRootResponse] {
           implicit def getRootResponseTRM: ToResponseMarshaller[GetRootResponse] = Marshaller { implicit ec =>
             resp => getRootResponseTR(resp)
           }

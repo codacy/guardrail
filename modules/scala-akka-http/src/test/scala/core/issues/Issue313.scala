@@ -48,7 +48,7 @@ class Issue313 extends AnyFunSuite with Matchers with SwaggerSpecRunner with Sca
   test("Test in body generation") {
     val (
       _,
-      Clients(Client(tags, className, imports, staticDefns, NonEmptyList(Right(cls), _), _) :: _, Nil),
+      Clients(Client(tags, className, imports, staticDefns, NonEmptyList(Right(cls), _), _) :: _, _),
       _
     )       = runSwaggerSpec(scalaInterpreter)(spec)(Context.empty, "akka-http")
     val cmp = companionForStaticDefns(staticDefns)
